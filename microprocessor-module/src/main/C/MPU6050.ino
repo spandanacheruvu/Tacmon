@@ -165,8 +165,8 @@ magaz= (accZ/4096.0);
 
 
  
-//Serial.print(accXangle); Serial.print("\t");
-//Serial.print(accYangle); Serial.print("\t");
+Serial.print(accXangle); Serial.print("\t");
+Serial.print(accYangle); Serial.print("\t");
 
 
 //Serial.print("\t");
