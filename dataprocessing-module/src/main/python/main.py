@@ -1,144 +1,77 @@
-import numpy
+__author__ = 'devashish.shankar'
 
-std_axes = ['ax', 'ay', 'az']
-
-class DataSet:
-    def __init__(self,filename,start = 0,end = 100000000):
-        f = open(filename)
-        all = f.read()
-        lines = all.split(';')
-        self.data = {'ax': [],'ay': [],'az': [],'gx': [],'gy': [],'gz': [],'time': []}
-        print "Total lines in file: ",len(lines)
-        print "Creating dataSet for: ",filename,start,end
-        for line in lines:
-            values = line.split('\t')
-            if(len(values)==9):
-                time = (long)(values[6])
-                if(time>start and time<end):
-                    self.data['ax'].append((float) (values[0]))
-                    self.data['ay'].append((float) (values[1]))
-                    self.data['az'].append((float) (values[2]))
-                    self.data['gx'].append((float) (values[3]))
-                    self.data['gy'].append((float) (values[4]))
-                    self.data['gz'].append((float) (values[5]))
-                    self.data['time'].append(time)
-            else:
-                print
-                print "error in line:",line,"values are: ",len(values)
-
-
-def getAvg(dataset, axis):
-    singleAxis = dataset.data[axis]
-    return sum(singleAxis) / float(len(singleAxis))
-
-def getP2PDistance(dataset,axis):
-    singleAxis = dataset.data[axis]
-    return max(singleAxis) - min(singleAxis)
-
-def getStdDev(dataset,axis):
-    singleAxis = dataset.data[axis]
-    return numpy.std(singleAxis)
-
-
-def getDataSetsbySamplingIntervals(filename,start,stop,intervalSize):
-    totalTime = stop-start
-    curStop = start + intervalSize
-    datasets = []
-    while(curStop<=stop):
-        datasets.append(DataSet(filename,start,curStop))
-        curStop+=intervalSize
-    return datasets
-
-def getFeatures(dataset):
-    featList = []
-    for axis in std_axes:
-        featList.append(getAvg(dataset,axis))
-        featList.append(getP2PDistance(dataset,axis))
-        featList.append(getStdDev(dataset,axis))
-    return featList
-
-fileName1 = '/Users/devashish.shankar/Downloads/walk1.txt'
-fileName2 = '/Users/devashish.shankar/Downloads/walk2.txt'
-fileName3 = '/Users/devashish.shankar/Downloads/walk3.txt'
-
-
-files = [fileName1,fileName2,fileName3]
-
-defaultIntervalSize = 1000
-
-walkTypeToDataSets = {}
-for file in files:
-    dataset = DataSet(file,30000,90000)
-    datasets = getDataSetsbySamplingIntervals(file,30000,90000,defaultIntervalSize)
-    walkTypeToDataSets[file] = datasets
-
-    #Print (useless to computation)
-
-X = []
-y = []
-
-totalSet = []
-for walkType in walkTypeToDataSets.keys():
-    for dataset in walkTypeToDataSets[walkType]:
-        X.append(getFeatures(dataset))
-        y.append(walkType)
-        totalSet.append((walkType,getFeatures(dataset)))
-
+from trainer import *
 import random
-random.shuffle(totalSet)
-
-print("Total sets: ",len(totalSet))
-
-trainToTestRatio = 0.8
-
-trainLen = (int) (len(totalSet)*trainToTestRatio)
-
-print "train len: ",trainLen
-trainSet = totalSet[:trainLen-1]
-testSet = totalSet[trainLen:]
-
-trainX = []
-trainy = []
-
-testX = []
-testy = []
-
-for train in trainSet:
-    print train
-    print "dsad",train[1]
-    trainX.append(train[1])
-    trainy.append(train[0])
-
-for test in testSet:
-    testX.append(test[1])
-    testy.append(test[0])
-
-
-
 from sklearn import svm
 
-print len(trainX),len(trainy)
-print trainX,trainy
-print "xtr",X,trainX
+def getDatasets(labelToFileDict, intervalSize):
+    walkTypeToDataSets = {}
+    for label in labelToFileDict.keys():
+        walkTypeToDataSets[label] = []
+        for file in labelToFileDict.get(label):
+            datasets = getDataSetsbySamplingIntervals(file,30000,180000,intervalSize)
+            walkTypeToDataSets[label].extend(datasets)
+    return walkTypeToDataSets
 
-clf = svm.SVC()
-clf_fit = clf.fit(trainX, trainy)
-print clf_fit
+def splitIntoTrainTest(labelToDataSets, ratio):
+    totalSet = []
+    for walkType in labelToDataSets.keys():
+        for dataset in labelToDataSets[walkType]:
+            totalSet.append((walkType,getFeatures(dataset)))
+    random.shuffle(totalSet)
+    print("Total sets: ",len(totalSet))
+    trainLen = (int) (len(totalSet)*ratio)
+    print "Train len: ",trainLen
+    trainSet = totalSet[:trainLen-1]
+    testSet = totalSet[trainLen:]
+    return trainSet,testSet
+
+def train(trainingDataSet):
+    trainX = []
+    trainy = []
+    for train in trainingDataSet:
+        trainX.append(train[1])
+        trainy.append(train[0])
+    clf = svm.SVC()
+    clf_fit = clf.fit(trainX, trainy)
+    return clf_fit
+
+def evaluate(clf_fit, testingDataSet):
+    testX = []
+    testy = []
+    for test in testingDataSet:
+        testX.append(test[1])
+        testy.append(test[0])
+    print clf_fit.score(testX,testy)
 
 
-for i in range(len(testX)):
-    stX = testX[i]
-    sty = testy[i]
-    y = clf_fit.predict(stX)
-    print y,sty
+#Step 1: get files with labels
+labelToFileDict = {'walk': ['/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/christinawalk.txt',
+                            '/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/nageshwalk.txt',
+                           # '/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/rajwalk.txt',
+                            '/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/sudhamaniwalk.txt'
+                            ],
+                    'sit':['/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/christinasitting.txt',
+                           '/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/nageshsitting.txt',
+                    #       '/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/rajsitting.txt',
+                           '/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/sudhamanisitting.txt',
+                           ]
+                   }
 
-#random.shuffle(testy)
-print clf_fit.score(testX,testy)
+#Step 2: Set interval size
+intervalSize = 1000
 
+#Step 3: Get data sets from labels
+labelToDataSets = getDatasets(labelToFileDict,intervalSize)
 
+print "labels are: ",labelToDataSets.keys()
+for label in labelToDataSets.keys():
+    print "label: ",label, "; datasets: ",len(labelToDataSets.get(label))
 
+#Step 4: divide into training testing
+trainingDataSet,testingDataSet = splitIntoTrainTest(labelToDataSets,0.8)
 
+#Step 5:
+model = train(trainingDataSet)
 
-
-
-
+evaluate(model,testingDataSet)
