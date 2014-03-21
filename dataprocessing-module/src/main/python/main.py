@@ -1,4 +1,4 @@
-__author__ = 'devashish.shankar'
+__author__ = "devashish.shankar"
 
 from trainer import *
 import random
@@ -44,17 +44,29 @@ def evaluate(clf_fit, testingDataSet):
         testy.append(test[0])
     print clf_fit.score(testX,testy)
 
+#Step 1: get files with labels
+labelToFileDict = {"walk": ["C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\\resources\christinawalk.txt",
+                            "C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\\resources\\nageshwalk.txt",
+                           # "C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\resources\rajwalk.txt",
+                            "C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\\resources\sudhamaniwalk.txt"
+                            ],
+                    "sit":["C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\resources\christinasitting.txt",
+                           "C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\resources\\nageshsitting.txt",
+                    #       "C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\resources\rajsitting.txt",
+                           "C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\resources\\sudhamanisitting.txt",
+                           ]
+                   }
 
 #Step 1: get files with labels
-labelToFileDict = {'walk': ['/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/christinawalk.txt',
-                            '/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/nageshwalk.txt',
-                           # '/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/rajwalk.txt',
-                            '/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/sudhamaniwalk.txt'
+labelToFileDict = {"walk": ["C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\\resources\christinawalk.txt",
+                            "C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\\resources\\nageshwalk.txt",
+                           # "C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\resources\rajwalk.txt",
+                            "C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\\resources\\sudhamaniwalk.txt"
                             ],
-                    'sit':['/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/christinasitting.txt',
-                           '/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/nageshsitting.txt',
-                    #       '/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/rajsitting.txt',
-                           '/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/sudhamanisitting.txt',
+                    "sit":["C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\\resources\\christinasitting.txt",
+                           "C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\resources\\nageshsitting.txt",
+                    #       "C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\resources\rajsitting.txt",
+                           "C:\Users\Spandana\Documents\GitHub\Tacmon\dataprocessing-module\\resources\\sudhamanisitting.txt",
                            ]
                    }
 

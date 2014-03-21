@@ -14,7 +14,8 @@
  Web      :  http://www.tkjelectronics.com
  e-mail   :  kristianl@tkjelectronics.com
  */
-
+#include <SD.h>
+const int chipSelect = 4;
 #include <Wire.h>
 #include "Kalman.h" // Source: https://github.com/TKJElectronics/KalmanFilter
 
@@ -35,12 +36,19 @@ double temp; // Temperature
 double gyroXangle, gyroYangle; // Angle calculate using the gyro
 double compAngleX, compAngleY; // Calculate the angle using a complementary filter
 double kalAngleX, kalAngleY; // Calculate the angle using a Kalman filter
+char accXangles[10], accYangles[10];
+char magaxs[10],magays[10], magazs[10];
+char temps[10];
+char times[10];
+char gyroXrates[10], gyroYrates[10], gyroZrates[10];
+
+int sensorPin = A0;
 
 uint32_t timer;
 uint8_t i2cData[14]; // Buffer for I2C data
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   Wire.begin();
   TWBR = ((F_CPU / 400000L) - 16) / 2; // Set I2C frequency to 400kHz
 
@@ -83,6 +91,20 @@ void setup() {
     
 
   timer = micros();
+  
+  Serial.print("Initializing SD card...");
+  // make sure that the default chip select pin is set to
+  // output, even if you don't use it:
+  pinMode(4, OUTPUT);
+  
+  // see if the card is present and can be initialized:
+  if (!SD.begin(chipSelect)) {
+    Serial.println("Card failed, or not present");
+    // don't do anything more:
+    return;
+  }
+  Serial.println("card initialized.");
+  
 }
 
 void loop() {
@@ -95,6 +117,16 @@ void loop() {
   gyroX = ((i2cData[8] << 8) | i2cData[9]);
   gyroY = ((i2cData[10] << 8) | i2cData[11]);
   gyroZ = ((i2cData[12] << 8) | i2cData[13]);
+ time = millis();
+int sensorval= analogRead(sensorPin);
+ if(sensorval >0)
+ {
+   counter++;
+ }
+
+
+  // make a string for assembling the data to log:
+ String dataString = "";
 
 //counter++;
 ////time to go through 1000 loops
@@ -124,16 +156,16 @@ magaz= (accZ/4096.0);
   //gyroXangle += gyroXrate * ((double)(micros() - timer) / 1000000); // Calculate gyro angle without any filter
   //gyroYangle += gyroYrate * ((double)(micros() - timer) / 1000000);
    //gyroZangle += gyroZrate * ((double)(micros() - timer) / 1000000);
-  gyroXangle += kalmanX.getRate()*((double)(micros()-timer)/1000000); // Calculate gyro angle using the unbiased rate
-  gyroYangle += kalmanY.getRate()*((double)(micros()-timer)/1000000);
+  //gyroXangle += kalmanX.getRate()*((double)(micros()-timer)/1000000); // Calculate gyro angle using the unbiased rate
+  //gyroYangle += kalmanY.getRate()*((double)(micros()-timer)/1000000);
   //gyroZangle += kalmanZ.getRate()*((double)(micros()-timer)/1000000);
 
-  compAngleX = (0.93 * (compAngleX + (gyroXrate * (double)(micros() - timer) / 1000000))) + (0.07 * accXangle); // Calculate the angle using a Complimentary filter
-  compAngleY = (0.93 * (compAngleY + (gyroYrate * (double)(micros() - timer) / 1000000))) + (0.07 * accYangle);
+  //compAngleX = (0.93 * (compAngleX + (gyroXrate * (double)(micros() - timer) / 1000000))) + (0.07 * accXangle); // Calculate the angle using a Complimentary filter
+  //compAngleY = (0.93 * (compAngleY + (gyroYrate * (double)(micros() - timer) / 1000000))) + (0.07 * accYangle);
 
 
-  kalAngleX = kalmanX.getAngle(accXangle, gyroXrate, (double)(micros() - timer) / 1000000); // Calculate the angle using a Kalman filter
-  kalAngleY = kalmanY.getAngle(accYangle, gyroYrate, (double)(micros() - timer) / 1000000);
+  //kalAngleX = kalmanX.getAngle(accXangle, gyroXrate, (double)(micros() - timer) / 1000000); // Calculate the angle using a Kalman filter
+  //kalAngleY = kalmanY.getAngle(accYangle, gyroYrate, (double)(micros() - timer) / 1000000);
   timer = micros();
 
   temp = ((double)tempRaw + 12412.0) / 340.0;
@@ -163,10 +195,59 @@ magaz= (accZ/4096.0);
   Serial.print(kalAngleY); Serial.print("\t");
   */
 
+dtostrf(accXangle,3,3,accXangles);
+dtostrf(accYangle,3,3,accYangles);
+dtostrf(magax,2,3,magaxs);
+dtostrf(magaz,2,3,magazs);
+dtostrf(magay,2,3,magays);
+dtostrf(gyroXrate,3,3,gyroXrates);
+dtostrf(gyroYrate,3,3,gyroYrates);
+dtostrf(gyroZrate,3,3,gyroZrates);
+dtostrf(time,3,3,times);
+dtostrf(temp,3,3,temps);
 
+ if (counter>0)
+ {
+
+dataString += String(accXangles);
+dataString += String("\t");
+dataString += String(accYangles);
+dataString += String("\t");
+dataString += String(magaxs);
+dataString += String("\t");
+dataString += String(magays);
+dataString += String("\t");
+dataString += String(magazs);
+dataString += String("\t");
+dataString += String(gyroXrates);
+dataString += String("\t");
+dataString += String(gyroYrates);
+dataString += String("\t");
+dataString += String(gyroZrates);
+dataString += String("\t");
+dataString += String(times);
+dataString += String("\t");
+dataString += String(temps);
+dataString += String("\t");
+
+
+
+File dataFile = SD.open("datalog.txt", FILE_WRITE);
+
+ if (dataFile) {
+    dataFile.println(dataString);
+    dataFile.close();
+    // print to the serial port too:
+    Serial.println(dataString);
+  }  
+  // if the file isn't open, pop up an error:
+  else {
+    Serial.println("error opening datalog.txt");
+  } 
  
-Serial.print(accXangle); Serial.print("\t");
-Serial.print(accYangle); Serial.print("\t");
+ }
+//Serial.print(accXangle); Serial.print("\t");
+//Serial.print(accYangle); Serial.print("\t");
 
 
 //Serial.print("\t");
@@ -183,20 +264,20 @@ Serial.print(accYangle); Serial.print("\t");
 //Each loop has 10ms delay
 
   //Serial.print(accZ); Serial.print("\t");
-  time = millis();
+ // time = millis();
 //prints time since program started
 //  Serial.println();
 
-Serial.print(magax); Serial.print("\t");
-Serial.print(magay); Serial.print("\t");
-Serial.print(magaz); Serial.print("\t");
-Serial.print(gyroXrate); Serial.print("\t");
-Serial.print(gyroYrate); Serial.print("\t");
-Serial.print(gyroZrate); Serial.print("\t");
-Serial.print(time); Serial.print("\t");
-Serial.print(temp);Serial.print("\t");
+//Serial.print(magax); Serial.print("\t");
+//Serial.print(magay); Serial.print("\t");
+//Serial.print(magaz); Serial.print("\t");
+//Serial.print(gyroXrate); Serial.print("\t");
+//Serial.print(gyroYrate); Serial.print("\t");
+//Serial.print(gyroZrate); Serial.print("\t");
+//Serial.print(time); Serial.print("\t");
+//Serial.print(temp);Serial.print("\t");
 
  
- Serial.print("\r\n");
+// Serial.print("\r\n");
   delay(18); // values are taken 50times per second with with 2ms loop execution and 18ms delay 
 }
