@@ -1,4 +1,4 @@
-__author__ = 'devashish.shankar'
+__author__ = "devashish.shankar"
 
 from trainer import *
 import random
@@ -103,7 +103,6 @@ def evaluate(clf_fit, testingDataSet):
     return clf_fit.score(testX,testy)
 
 
-#Step 1: get files with labels
 labelToFileDict = {
     'sitting':['/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/new/final_sit.txt'],
      'slowWalk':['/Users/devashish.shankar/Work/Tacmon/dataprocessing-module/resources/new/final_walk.txt'],
