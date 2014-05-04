@@ -1,32 +1,42 @@
+import math
 import numpy
+from numpy import fft
 
 std_axes = ['ax', 'ay', 'az', 'axa', 'aya']
 
 class DataSet:
-    def __init__(self,filename,start = 0,end = 100000000):
-        f = open(filename)
-        all = f.read()
-        lines = all.split(';')
+    def __init__(self,lines,start = 0,end = 100000000):
         self.data = {'ax': [],'ay': [],'az': [],'gx': [],'gy': [],'gz': [], 'axa': [], 'aya': [], 'time': []}
-        print "Total lines in file: ",len(lines)
-        print "Creating dataSet for: ",filename,start,end
+        #print "Total lines in file: ",len(lines)
+        #print "Creating dataSet for: "  ,start,end
+        # Get time of first line
+        firstLine = lines[0]
+        firstTimeS = firstLine.split('\t')[8]
+        firstTime =  math.floor((float)(firstTimeS))
+
         for line in lines:
             values = line.split('\t')
             if(len(values)==11):
-                time = (long)(values[8])
+                time = math.floor((float)(values[8]))
+                time = time-firstTime
+                #print "time: ",time," start: ",start, " end: ",end
                 if(time>start and time<end):
+                    gxValue = values[5]
+                    if(len(gxValue)==0):
+                        gxValue = '0'
                     self.data['ax'].append((float) (values[2]))
                     self.data['ay'].append((float) (values[3]))
                     self.data['az'].append((float) (values[4]))
-                    self.data['gx'].append((float) (values[5]))
+                    self.data['gx'].append((float) (gxValue))
                     self.data['gy'].append((float) (values[6]))
                     self.data['gz'].append((float) (values[7]))
                     self.data['axa'].append((float) (values[0]))
                     self.data['aya'].append((float) (values[1]))
                     self.data['time'].append(time)
             else:
-                print
-                print "error in line:",line,"values are: ",len(values)
+                if(len(values)!=1):
+                    print
+                    print "error in line:",line,"values are: ",len(values)
 
 
 def getAvg(dataset, axis):
@@ -41,20 +51,69 @@ def getStdDev(dataset,axis):
     singleAxis = dataset.data[axis]
     return numpy.std(singleAxis)
 
+def getMedian(dataset,axis):
+    singleAxis = dataset.data[axis]
+    return numpy.median(singleAxis)
+
+def getMax(dataset,axis):
+    singleAxis = dataset.data[axis]
+    return numpy.max(singleAxis)
+
+def getMin(dataset,axis):
+    singleAxis = dataset.data[axis]
+    return numpy.min(singleAxis)
+
+def getRMS(dataset,axis):
+    singleAxis = dataset.data[axis]
+    return numpy.sqrt(numpy.mean(numpy.array(singleAxis)**2))
+
+def getCorrelation(dataset,axisA,axisB):
+    axisAData = dataset.data[axisA]
+    azisBData = dataset.data[axisB]
+    return numpy.correlate(axisAData,azisBData)
+
+def getDifference(dataset, A, B):
+    axisAData = dataset.data[A]
+    axisBData = dataset.data[B]
+    diffArray = numpy.array(axisAData) - numpy.array(axisBData)
+    return max(diffArray)
 
 def getDataSetsbySamplingIntervals(filename,start,stop,intervalSize):
     totalTime = stop-start
     curStop = start + intervalSize
     datasets = []
     prevCurStop = start
-    while(curStop<=stop):
-        data_set = DataSet(filename, prevCurStop, curStop)
-        if(len(data_set.data['ax'])) == 0:
-            print "zero data"
+    f = open(filename)
+    all = f.read()
+    lines = all.split('\n')
+    preProcessedLines = []
+    #print(" Raw lines in file: ",filename," = ",len(lines))
+    errorCount=0
+    for line in lines :
+        values = line.split('\t')
+        if(len(values)==11):
+            preProcessedLines.append(line)
         else:
+            #print "Error in line: "+line+" values are: ",len(values)
+            errorCount+=1
+
+    #print "Errors found",errorCount
+    #print "After preprocessing: lines: ",len(preProcessedLines)
+    miss = 0
+    hit =0
+    while(curStop<=stop):
+        data_set = DataSet(preProcessedLines, prevCurStop, curStop)
+
+        if(len(data_set.data['ax'])) == 0:
+            miss+=1
+            pass
+            # print "zero data for: ",filename,prevCurStop,curStop
+        else:
+            hit+=1
             datasets.append(data_set)
         prevCurStop = curStop
         curStop+=intervalSize
+        #print "miss: ",miss," hit: ",hit
     return datasets
 
 def getFeatures(dataset):
@@ -63,7 +122,35 @@ def getFeatures(dataset):
         featList.append(getAvg(dataset,axis))
         featList.append(getP2PDistance(dataset,axis))
         featList.append(getStdDev(dataset,axis))
+        featList.append(getMedian(dataset,axis))
+        featList.append(getMax(dataset,axis))
+        featList.append(getMin(dataset,axis))
+        featList.append(getRMS(dataset,axis))
+    featList.append(getCorrelation(dataset,'ax','ay'))
+    featList.append(getCorrelation(dataset,'ax','az'))
+    featList.append(getCorrelation(dataset,'ay','az'))
+    featList.append(getDifference(dataset,'ay','az'))
+    featList.append(getDifference(dataset,'ax','az'))
+    featList.append(getDifference(dataset,'ay','ax'))
     return featList
+
+def getFeaturesOld(dataset):
+    featList = []
+    for axis in std_axes:
+        featList.append(getAvg(dataset,axis))
+        featList.append(getP2PDistance(dataset,axis))
+        featList.append(getStdDev(dataset,axis))
+    return featList
+
+def getFreqDomainFeatures(dataset):
+    featList = []
+    for axis in std_axes:
+        arr = dataset.data[axis]
+        arrF = fft.fft(arr)
+        arrFreq = fft.fftfreq(len(arr))
+        featList.append(numpy.real(arrF[0])) #DC Component
+    return featList
+
 
 # fileName1 = '/Users/devashish.shankar/Downloads/walk1.txt'
 # fileName2 = '/Users/devashish.shankar/Downloads/walk2.txt'
